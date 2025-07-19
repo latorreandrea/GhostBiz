@@ -3,7 +3,7 @@ import pandas as pd
 
 def extract_osm_businesses(place_name="Copenhagen, Denmark", tags={"shop": True}):
     """
-    Extract business data from OpenStreetMap for Copenhagen.
+    Extract business data from OpenStreetMap for a given place.
     
     Args:
         place_name (str): The name of the place to search for businesses
@@ -12,56 +12,62 @@ def extract_osm_businesses(place_name="Copenhagen, Denmark", tags={"shop": True}
     Returns:
         pd.DataFrame: DataFrame containing business information
     """
+    print(f"Searching for businesses in: {place_name}")
+    print(f"Using tags: {tags}")
     # Fetch OSM features (businesses) from the specified place using the given tags
-    gdf = ox.features_from_place(place_name, tags)    
+    gdf = ox.features_from_place(place_name, tags)
+    print(f"Initial features found: {len(gdf)}")
     # Filter out entries that don't have a name (unnamed businesses)
-    gdf = gdf[gdf['name'].notnull()]    
+    gdf = gdf[gdf['name'].notnull()]
+    print(f"Named businesses found: {len(gdf)}")
     # Reset the index to have a clean sequential index
     gdf = gdf.reset_index()
     # Debug: Print available columns to understand the data structure
     print(f"Available columns: {list(gdf.columns)}")
 
+    # FIX: Convert to projected CRS for accurate centroid calculation
+    print("Converting coordinates to projected CRS for accurate centroids...")
+    gdf_projected = gdf.to_crs('EPSG:3857')  # Web Mercator projection
+    
+    # Calculate centroids on projected coordinates
+    centroids = gdf_projected.geometry.centroid
+    
+    # Convert centroids back to geographic coordinates (WGS84)
+    centroids_geo = centroids.to_crs('EPSG:4326')  # WGS84 (lat/lon)
+    print("Coordinate conversion completed")
+
     # Create a dictionary to structure the business data
     # Each key represents a field we want to extract from the OSM data
     data = {
         # Extract the OSM ID for unique identification
-        "id": gdf["id"],
-        
+        "id": gdf["id"],        
         # Extract the business name
-        "name": gdf["name"],
-        
+        "name": gdf["name"],        
         # Determine business type by combining shop and amenity tags
-        "business_type": _determine_business_type(gdf),
-        
+        "business_type": _determine_business_type(gdf),        
         # Build complete address from available address components
-        "address": _build_full_address(gdf),
-        
+        "address": _build_full_address(gdf),        
         # Extract email (None if not available)
         "email": gdf.get("email", None) if "email" in gdf.columns else None,
-        
         # Extract phone number (None if not available)
         "phone": gdf.get("phone", None) if "phone" in gdf.columns else None,
-        
         # Extract website URL - try both "website" and "url" fields
         "website": _extract_website(gdf),
-        
         # Extract opening hours (None if not available)
         "opening_hours": gdf.get("opening_hours", None) if "opening_hours" in gdf.columns else None,
-        
         # Additional useful information for reference
         "element_type": gdf.get("element", None),
         "brand": gdf.get("brand", None) if "brand" in gdf.columns else None,
-        
         # Geographic coordinates from geometry centroid
-        "lat": gdf.geometry.centroid.y,
-        "lon": gdf.geometry.centroid.x
+        "lat": centroids_geo.y,
+        "lon": centroids_geo.x
     }
 
     # Convert dictionary to pandas DataFrame
-    df = pd.DataFrame(data)
-    
+    df = pd.DataFrame(data)    
     # Clean and standardize the data
     df = _clean_dataframe(df)
+    print(f"Extraction completed: {len(df)} businesses ready for processing")
     
     return df
 

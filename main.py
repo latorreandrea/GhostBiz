@@ -3,12 +3,12 @@ import pandas as pd
 import time
 from osm_extractor import extract_osm_businesses
 from google_checker import check_google_business
+
 # Import all configuration parameters
-from config import GOOGLE_API_KEY, DEFAULT_PLACE, DEFAULT_RADIUS, API_DELAY
+from config import GOOGLE_API_KEY, DEFAULT_PLACE, DEFAULT_RADIUS, API_DELAY, DEFAULT_TAGS
 
 
-
-def main(checker=False, output_file="ghostbiz_results.csv", place_name=None):
+def main(checker=False, output_file="ghostbiz_results.csv", place_name=None, tags=None):
     """
     Main function to extract OSM business data with optional Google Places verification.
     
@@ -17,28 +17,45 @@ def main(checker=False, output_file="ghostbiz_results.csv", place_name=None):
                        If False, exports only OSM data directly to CSV.
         output_file (str): Path to the output CSV file
         place_name (str): Place to extract businesses from. If None, uses DEFAULT_PLACE from config
+        tags (dict): OSM tags to filter by. If None, uses DEFAULT_TAGS from config
     """
-    # Use DEFAULT_PLACE from config if no place_name provided
+    # Use config defaults if not provided
     if place_name is None:
         place_name = DEFAULT_PLACE
-    print(f"Starting GhostBiz extraction in {place_name}... with checker={checker}")
+    if tags is None:
+        tags = DEFAULT_TAGS
+        
+    print(f"Starting GhostBiz extraction...")
+    print(f"Location: {place_name}")
+    print(f"Tags: {tags}")
+    print(f"Checker mode: {'enabled' if checker else 'disabled'}")
 
      # Step 1: Extract businesses from OpenStreetMap
     print("Extracting businesses from OpenStreetMap...")
-    df_osm = extract_osm_businesses()
+    df_osm = extract_osm_businesses(place_name=place_name, tags=DEFAULT_TAGS)
     print(f"Found {len(df_osm)} businesses from OSM")
 
     if not checker:
         # Direct export mode - save OSM data directly to CSV
-        print("Checker disabled - Saving OSM data directly to CSV...")
+        print(f"Checker disabled - Saving OSM data directly to CSV...")
         df_osm.to_csv(output_file, index=False)
         print(f"OSM data saved to {output_file}")
         print(f"Total businesses exported: {len(df_osm)}")
+        
+        # Debug: Show coordinate range to verify location
+        if len(df_osm) > 0:
+            lat_range = (df_osm['lat'].min(), df_osm['lat'].max())
+            lon_range = (df_osm['lon'].min(), df_osm['lon'].max())
+            print(f"Coordinate ranges:")
+            print(f"Latitude: {lat_range[0]:.4f} to {lat_range[1]:.4f}")
+            print(f"Longitude: {lon_range[0]:.4f} to {lon_range[1]:.4f}")
+        
         return df_osm
 
     # Checker mode enabled - cross-reference with Google Places
-    print("Checker enabled - Cross-referencing with Google Places API...")
+    print(f"Checker enabled - Cross-referencing with Google Places API...")
     print(f"Using API delay: {API_DELAY} second(s) between calls")
+    print(f"Using search radius: {DEFAULT_RADIUS} meters")
     # Check for GOOGLE_API_KEY
     try:
         # Already imported at top, but let's validate it's not the placeholder
@@ -87,7 +104,13 @@ def main(checker=False, output_file="ghostbiz_results.csv", place_name=None):
         else:
             print(f"No OSM website found - Checking Google Places...")
             try:
-                google_data = check_google_business(row["name"], row["lat"], row["lon"], GOOGLE_API_KEY)
+                google_data = check_google_business(
+                    row["name"], 
+                    row["lat"], 
+                    row["lon"], 
+                    GOOGLE_API_KEY,
+                    radius=DEFAULT_RADIUS  # Use configured radius
+                    )
                 
                 entry = {
                     "osm_name": row["name"],
@@ -137,10 +160,19 @@ def main(checker=False, output_file="ghostbiz_results.csv", place_name=None):
 if __name__ == "__main__":
     # Examples of how to run the script:
     
-    # Option 1: Extract only OSM data (no Google API calls)
-    print("=== OSM ONLY MODE ===")
+    # Option 1: Extract only OSM data using all config defaults
+    print("=== OSM ONLY MODE (Uses DEFAULT_PLACE and DEFAULT_TAGS) ===")
     osm_data = main(checker=False, output_file="osm_businesses.csv")
     
-    # Option 2: Full mode with Google Places verification
+    # Option 2: Extract from a different city with default tags
+    # print("=== DIFFERENT CITY ===")
+    # osm_data = main(checker=False, place_name="Milan, Italy", output_file="milan_businesses.csv")
+    
+    # Option 3: Custom location and tags
+    # print("=== CUSTOM SEARCH ===")
+    # custom_tags = {"amenity": ["restaurant", "cafe"]}
+    # osm_data = main(checker=False, place_name="Milan, Italy", tags=custom_tags, output_file="milan_restaurants.csv")
+    
+    # Option 4: Full mode with Google Places verification
     # print("=== FULL VERIFICATION MODE ===")
     # verified_data = main(checker=True, output_file="ghostbiz_results.csv")
