@@ -38,6 +38,7 @@ ENV/
 env.bak/
 venv.bak/
 
-cache/2f0e087e1685fdf2232e112979ce586e9839c44d.json
+
 .gitignore
 cache
+osm_businesses.csv
