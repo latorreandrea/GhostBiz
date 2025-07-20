@@ -9,7 +9,15 @@ API_DELAY = 1  # seconds between API calls
 # Expanded OSM tags for more comprehensive business search
 DEFAULT_TAGS = {
     "shop": True,
-    "amenity": ["restaurant", "cafe", "bar", "pub", "fast_food", "pharmacy", "bank"],
+    "amenity": [
+        "restaurant", 
+        "cafe", 
+        "bar", 
+        "pub", 
+        "fast_food", 
+        "pharmacy", 
+        "bank"
+        ],
     "tourism": ["hotel", "hostel", "guest_house"],
     "craft": True,
     "office": True

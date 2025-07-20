@@ -14,14 +14,43 @@ def extract_osm_businesses(place_name="Copenhagen, Denmark", tags={"shop": True}
     """
     print(f"Searching for businesses in: {place_name}")
     print(f"Using tags: {tags}")
-    # Fetch OSM features (businesses) from the specified place using the given tags
-    gdf = ox.features_from_place(place_name, tags)
+    
+    # Check if we need to use coordinate fallback for Copenhagen
+    if "Copenhagen" in place_name and "Denmark" in place_name:
+        print("Using coordinate-based search for Copenhagen...")
+        # Copenhagen bounding box coordinates (from Nominatim cache)
+        # Expanded slightly for better coverage
+        north, south, east, west = 55.73, 55.64, 12.65, 12.49
+        print(f"Coordinates: North={north}, South={south}, East={east}, West={west}")
+        
+        try:
+            # CORRECTED: Use proper bbox syntax
+            gdf = ox.features_from_bbox(
+                bbox=(north, south, east, west),
+                tags=tags
+            )
+            print(f"Coordinate search successful!")
+        except Exception as e:
+            print(f"Coordinate search failed: {e}")
+            print("Falling back to place name search...")
+            try:
+                gdf = ox.features_from_place(place_name, tags)
+            except Exception as e2:
+                print(f"Place name search also failed: {e2}")
+                raise e2
+    else:
+        # Use normal place name search for other locations
+        gdf = ox.features_from_place(place_name, tags)
+    
     print(f"Initial features found: {len(gdf)}")
+    
     # Filter out entries that don't have a name (unnamed businesses)
     gdf = gdf[gdf['name'].notnull()]
     print(f"Named businesses found: {len(gdf)}")
+    
     # Reset the index to have a clean sequential index
     gdf = gdf.reset_index()
+    
     # Debug: Print available columns to understand the data structure
     print(f"Available columns: {list(gdf.columns)}")
 
