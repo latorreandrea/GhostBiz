@@ -48,7 +48,7 @@ def osmnx_connection(): ## FIRST STEP COMPLETED
         print(f"    ❌ FAILED: {e}")
         return False
 
-def prototype_osmnx_connection(): ## 
+def prototype_osmnx_connection(): ## SECOND STEP COMPLETED
     """
     Step 2: Test basic OSMnx connectivity and simple feature extraction
     using the real Copenhagen place
@@ -56,7 +56,8 @@ def prototype_osmnx_connection(): ##
     try:
         # Test 2a: Very simple query - get building footprints for Copenhagen
         print("\n2a. Testing simple building footprints query for Copenhagen...")
-        place = "Copenhagen, Denmark"
+        # place = "Copenhagen, Denmark" first error now we try Copenhagen Municipality, Denmark
+        place = "Copenhagen Municipality, Denmark"
         tags = {"building": True}
 
         start_time = time.time()
@@ -91,11 +92,13 @@ def main():
     #     return
     # ## FIRST STEP COMPLETED
     # Step 2: Prototype connection with Copenhagen
-    step2_success = prototype_osmnx_connection()
-    if not step2_success:
-        print("\n❌ CRITICAL: Prototype OSMnx functionality failed")
-        print("Check internet connection and OSMnx installation")
-        return
-    # first bug the library find a city called Copenhagen, but not the one in Denmark
+    # step2_success = prototype_osmnx_connection()
+    # if not step2_success:
+    #     print("\n❌ CRITICAL: Prototype OSMnx functionality failed")
+    #     print("Check internet connection and OSMnx installation")
+    #     return
+    # # first bug the library find a city called Copenhagen, but not the one in Denmark
+    # Now that we found the right place, we can continue with the next steps
+    # # Step 3: Create a more complex query where we extract only the activities
 if __name__ == "__main__":
     main()
